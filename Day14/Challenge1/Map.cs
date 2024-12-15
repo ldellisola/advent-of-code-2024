@@ -36,6 +36,8 @@ public class Map
         return (int) (positions.X * positions.Y * positions.Z * positions.W);
     }
 
+
+
     public override string ToString()
     {
         var bld = new StringBuilder();
