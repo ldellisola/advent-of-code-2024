@@ -60,7 +60,7 @@ public class Garden(char[][] input)
                         // above
                         currentRegion.Sides++;
                         // below
-                        if
+                        // if
                         currentRegion.Sides++;
                         oldRegion = currentRegion;
                     }
