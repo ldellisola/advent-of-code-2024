@@ -1,4 +1,4 @@
-﻿using Day16.Challenge1;
+﻿using Day16.Challenge2;
 
 var input = File.ReadAllLines("input.txt").Select(t=> t.ToCharArray()).ToArray();
 
