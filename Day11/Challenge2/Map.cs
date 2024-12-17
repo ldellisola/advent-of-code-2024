@@ -11,30 +11,18 @@ public class Map(string[] input, int maxGeneration)
     public void Run()
     {
         foreach(var rock in _rockBag)
-        {
             TotalRocks += Foo(rock);
-        }
     }
-
-
 
     private readonly Dictionary<(int Generation, ulong value), ulong> _rockBagToGeneration = new();
     private ulong Foo((int generation, ulong value) rock)
     {
         if(_rockBagToGeneration.TryGetValue(rock, out ulong count))
             return count;
-        
         if(rock.generation == maxGeneration)
-        {
             return _rockBagToGeneration[rock] = 1;
-        }
-        
-
         if(rock.value is 0)
-        {
             return _rockBagToGeneration[rock] = Foo((rock.generation + 1, 1ul));;
-        }
-        
         
         var digits = rock.value == 0 ? 1 : Math.Floor(Math.Log10(rock.value) + 1);
         if(digits % 2 == 0)
