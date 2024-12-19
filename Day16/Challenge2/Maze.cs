@@ -1,3 +1,4 @@
+using System.Text;
 using Common;
 
 namespace Day16.Challenge2;
@@ -5,93 +6,116 @@ namespace Day16.Challenge2;
 using VectorWithDirection = (Vector position, Vector direction);
 using VectorItem = (Vector position, Vector direction, List<(Vector position, Vector direction)> directions);
 
+
 public class Maze(char[][] map)
 {
+
+    private long[][] costMap;
+    public Maze(char[][] map, int i) : this(map)
+    {
+        costMap = new long[ map.Length ][];
+        for(int row = 0; row < costMap.Length; row++)
+        {
+            costMap[row] = new long[map[row].Length];
+            for(int col = 0; col < costMap[row].Length; col++)
+            {
+                if (map[row][col] == '#')
+                    costMap[row][col] = -1;
+                else
+                    costMap[row][col] = long.MaxValue;
+            }
+        }
+    }
     public long CalculateRun()
     {
-        var start = Find('S');
-        var direction = Vector.Right;
-        
-        var (bestCost, maxLength) = FindPathSingle(start, direction);
-        
-        var result = FindPath(start, direction, bestCost, maxLength);
-        return result;
+        FloodFill();
+        File.WriteAllText("text.csv",ToCsv());
+        return Backtrack().Count;
     }
 
-    private long FindPath(Vector initialPosition, Vector initialDirection, long maxCost, long maxLength)
+    public HashSet<Vector> Backtrack()
     {
-        var runs = new List<List<Vector>>();
-        var stack = new PriorityQueue<VectorItem,long>();
-        
-        stack.Enqueue((initialPosition,initialDirection,[(initialPosition,initialDirection)]),0);
-        ulong i = 0;
-        
-        while (stack.TryDequeue(out var run, out var priority))
+        var start = Find('S');
+        var end = Find('E');
+        var visited = new HashSet<Vector>();
+        var queue = new Queue<Vector>([end]);
+
+        while(queue.TryDequeue(out var position))
         {
-            i++;
-            if (i % 100_000 == 0)
-                Console.WriteLine($"Items remaining: {stack.Count:N0}");
-            
-            var pos = run.position;
-            if (this[pos] == 'E' )
-            {
-                if (run.directions.Count == maxLength && priority == maxCost) 
-                    runs.Add(run.directions.Select(t=> t.position).ToList());
+            if (!visited.Add(position))
                 continue;
+
+            if(position == start)
+                return visited;
+
+            Vector[] neighbors =
+            [
+                position + Vector.Down,
+                position + Vector.Up,
+                position + Vector.Left,
+                position + Vector.Right,
+            ];
+
+            var minCostNeighbors = neighbors.GroupBy(t => costMap[t.Row][t.Col]).Where(t=> t.Key >=0).MinBy(t => t.Key).ToArray();
+
+            foreach(var neighbor in minCostNeighbors.Reverse())
+            {
+                queue.Enqueue(neighbor);
             }
-            
-            // straight ahead
-            var straight = (pos: pos + run.direction, run.direction);
-            if (!run.directions.Contains(straight) && this[straight.pos] != '#' && priority < maxCost && run.directions.Count < maxLength)
-                stack.Enqueue((pos + run.direction, run.direction,run.directions.Concat([(pos + run.direction, run.direction)]).ToList()),priority + 1);
-            
-            var left =  (pos, run.direction.RotateLeft());
-            if (!run.directions.Contains(left) && priority + 1000 < maxCost)
-                stack.Enqueue((pos, run.direction.RotateLeft(), run.directions),priority + 1000);
-            
-            var right =  (pos, run.direction.RotateRight());
-            if (!run.directions.Contains(right) && priority + 1000 < maxCost)
-                stack.Enqueue((pos, run.direction.RotateRight(),run.directions),priority + 1000);
-            
+        }
+        
+        return [];
+    }
+
+    public string ToCsv()
+    {
+        var bld = new StringBuilder();
+        for(int row = 0; row < costMap.Length; row++)
+        {
+            bld.AppendLine(string.Join(',', costMap[row]));
         }
 
-        return new HashSet<Vector>(runs.SelectMany(t=> t)).Count;
+        return bld.ToString();
+    }
+
+    private void FloodFill()
+    {
+        HashSet<Vector> visited = [];
+        var queue = new PriorityQueue<VectorWithDirection, long>();
+        var start = Find('S');
+        var end = Find('E');
+        queue.Enqueue((start, Vector.Right),0);
+
+        while(queue.TryDequeue(out var item , out var cost))
+        {
+            var (position, direction) = item;
+            costMap[position.Row][position.Col] = Math.Min(cost, costMap[position.Row][position.Col]);
+
+            if (!visited.Add(position))
+                continue;
+
+            
+            if (position == end)
+                return;
+
+
+            var leftDirection = direction.RotateLeft();
+            var rightDirection = direction.RotateRight();
+            (Vector nextPosition, Vector nextDirection, long extraCost)[] neighbors =
+            [
+                (position + direction, direction, 1),
+                (position + rightDirection, rightDirection, 1 + 1000),
+                (position + leftDirection, leftDirection, 1 + 1000)
+            ];
+
+            foreach(var (nextPosition, nextDirection, extraCost) in neighbors)
+            {
+                if (!visited.Contains(nextPosition) && costMap[nextPosition.Row][nextPosition.Col] != -1)
+                    queue.Enqueue((nextPosition,nextDirection), cost + extraCost);
+            }
+        }
     }
     
-    private (long cost, long length) FindPathSingle(Vector initialPosition, Vector initialDirection)
-    {
-        HashSet<VectorWithDirection> visited = [];
-        var stack = new PriorityQueue<(VectorWithDirection, long length),long>();
-        
-        stack.Enqueue(((initialPosition,initialDirection),1),0);
-        
-        while (stack.TryDequeue(out var run, out var priority))
-        {
-            visited.Add(run.Item1);
-            var pos = run.Item1.position;
-            if (this[pos] == 'E')
-            {
-                return (priority,run.length);
-            }
-            
-            // straight ahead
-            VectorWithDirection straight = (pos + run.Item1.direction, run.Item1.direction);
-            if (!visited.Contains(straight) && this[straight.position] != '#')
-                stack.Enqueue((straight,run.length+1),priority + 1);
-            
-            var left =  (pos, run.Item1.direction.RotateLeft());
-            if (!visited.Contains(left))
-                stack.Enqueue((left,run.length),priority + 1000);
-            
-            var right =  (pos, run.Item1.direction.RotateRight());
-            if (!visited.Contains(right))
-                stack.Enqueue((right,run.length),priority + 1000);
-            
-        }
-        
-        throw new Exception("No path found");
-    }
-
     private Vector Find(char item)
     {
         for (int row = 0; row < map.Length; row++)

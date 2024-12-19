@@ -2,7 +2,7 @@
 
 var input = File.ReadAllLines("input.txt").Select(t=> t.ToCharArray()).ToArray();
 
-var maze = new Maze(input);
+var maze = new Maze(input,0);
 
 var shortestPath = maze.CalculateRun();
 
