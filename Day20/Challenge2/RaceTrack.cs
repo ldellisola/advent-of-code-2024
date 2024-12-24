@@ -77,13 +77,10 @@ public class RaceTrack
                     this[_end] = bestCost;
                 }
             }
-            
-            
         }
         
-        return cheats.Where(t=> t.Key >=100).Aggregate(0L, (a,b) => a += (b.Value.Count / 2));
+        return cheats.Where(t=> t.Key >=100).Aggregate(0L, (a,b) => a + (b.Value.Count / 2));
     }
-    
     
     private void FloodFill()
     {

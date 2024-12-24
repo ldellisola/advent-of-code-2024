@@ -12,9 +12,32 @@ public class Vector(int row, int col) : IAdditionOperators<Vector,Vector,Vector>
     public int Row => row;
     public int Col => col;
     
+    
+    public static implicit operator Vector((int, int) tuple) 
+        => new(tuple.Item1, tuple.Item2);
+    
     public static Vector operator +(Vector left, Vector right)
     {
         return new Vector(left.Row + right.Row, left.Col + right.Col);
+    }
+
+    public int Distance(Vector other)
+    {
+        return Math.Abs(other.Row - Row) + Math.Abs(other.Col - Col);
+    }
+    
+    public Vector GetDirection( Vector to)
+    {
+        return (Row.CompareTo(to.Row), Col.CompareTo(to.Col)) switch
+        {
+            (0, 0) => (0, 0),
+            (_, > 0) => Left,
+            (< 0, _) => Down,
+            (> 0, _) => Up,
+            (_, < 0) => Right,
+
+            
+        };
     }
 
     public Vector RotateLeft()
@@ -37,7 +60,8 @@ public class Vector(int row, int col) : IAdditionOperators<Vector,Vector,Vector>
             (0, -1) => Up,
             (0, 1) => Down,
             _ => throw new InvalidOperationException("Only scalars are supported")
-        };    }
+        };    
+    }
 
     public void Deconstruct(out int row, out int col)
     {
